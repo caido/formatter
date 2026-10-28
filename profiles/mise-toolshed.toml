@@ -1,0 +1,19 @@
+# Shared Caido formatting. Invoke through bin/format to resolve companion configs.
+on-unmatched = "debug"
+excludes = [".git/*", ".formatter/*", "node_modules/*", "*/node_modules/*", "dist/*", "*/dist/*", "target/*", "*/target/*", "coverage/*", "*/coverage/*", ".venv/*", "*/.venv/*", ".terraform/*", "*/.terraform/*", "*-lock.json", "pnpm-lock.yaml", "yarn.lock", "uv.lock", "*.min.js", "*.min.css", ".agents/*", ".claude/*", ".cursor/*", "**/__generated__/**", ".mise/locks/*"]
+
+[formatter.oxfmt]
+command = "sh"
+options = ["-eu", "-c", "exec oxfmt --write --config \"$CAIDO_FORMATTER_ROOT/configs/oxfmt-toolshed.json\" \"$@\"", "--"]
+includes = ["*.ts", "*.tsx", "*.mts", "*.cts", "*.js", "*.jsx", "*.mjs", "*.cjs", "*.vue", "*.html", "*.css", "*.scss", "*.json", "*.jsonc", "*.graphql", "*.md", "*.yml", "*.yaml"]
+excludes = ["*.svg", "*.grammar"]
+
+[formatter.shfmt]
+command = "shfmt"
+options = ["-w"]
+includes = ["*.sh", "*.bash", "*.bats"]
+
+[formatter.stylua]
+command = "stylua"
+options = []
+includes = ["*.lua", "*.luau"]

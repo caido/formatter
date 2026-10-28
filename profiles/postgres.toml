@@ -1,0 +1,8 @@
+# Shared Caido formatting. Invoke through bin/format to resolve companion configs.
+on-unmatched = "debug"
+excludes = [".git/*", ".formatter/*", "node_modules/*", "*/node_modules/*", "dist/*", "*/dist/*", "target/*", "*/target/*", "coverage/*", "*/coverage/*", ".venv/*", "*/.venv/*", ".terraform/*", "*/.terraform/*", "*-lock.json", "pnpm-lock.yaml", "yarn.lock", "uv.lock", "*.min.js", "*.min.css", ".agents/*", ".claude/*", ".cursor/*", "**/__generated__/**"]
+
+[formatter.sqlfluff]
+command = "sqlfluff"
+options = ["format", "--dialect", "postgres"]
+includes = ["*.sql"]

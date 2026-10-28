@@ -1,0 +1,8 @@
+# Shared Caido formatting. Invoke through bin/format to resolve companion configs.
+on-unmatched = "debug"
+excludes = [".git/*", ".formatter/*", "node_modules/*", "*/node_modules/*", "dist/*", "*/dist/*", "target/*", "*/target/*", "coverage/*", "*/coverage/*", ".venv/*", "*/.venv/*", ".terraform/*", "*/.terraform/*", "*-lock.json", "pnpm-lock.yaml", "yarn.lock", "uv.lock", "*.min.js", "*.min.css", ".agents/*", ".claude/*", ".cursor/*", "**/__generated__/**"]
+
+[formatter.ruff]
+command = "sh"
+options = ["-eu", "-c", "exec ruff format --force-exclude --config \"$CAIDO_FORMATTER_ROOT/configs/ruff-caido-private.toml\" \"$@\"", "--"]
+includes = ["scripts/*.py", "scripts/*.pyi", "tests/*.py", "tests/*.pyi"]

@@ -1,0 +1,62 @@
+# Shared Caido formatting. Invoke through bin/format to resolve companion configs.
+# Alternative engines are opt-in: never select Oxfmt + Prettier/Deno, or Ruff + Black, for the same files.
+on-unmatched = "debug"
+excludes = [".git/*", ".formatter/*", "node_modules/*", "*/node_modules/*", "dist/*", "*/dist/*", "target/*", "*/target/*", "coverage/*", "*/coverage/*", ".venv/*", "*/.venv/*", ".terraform/*", "*/.terraform/*", "*-lock.json", "pnpm-lock.yaml", "yarn.lock", "uv.lock", "*.min.js", "*.min.css", ".agents/*", ".claude/*", ".cursor/*", "**/__generated__/**"]
+formatters = ["oxfmt", "rustfmt", "ruff", "tofu", "shfmt", "stylua"]
+
+[formatter.oxfmt]
+command = "sh"
+options = ["-eu", "-c", "exec oxfmt --write --config \"$CAIDO_FORMATTER_ROOT/configs/oxfmt.json\" \"$@\"", "--"]
+includes = ["*.ts", "*.tsx", "*.mts", "*.cts", "*.js", "*.jsx", "*.mjs", "*.cjs", "*.vue", "*.html", "*.css", "*.scss", "*.json", "*.jsonc", "*.graphql", "*.md", "*.yml", "*.yaml"]
+excludes = ["*.svg", "*.grammar"]
+
+[formatter.prettier]
+command = "sh"
+options = ["-eu", "-c", "exec prettier --write --no-editorconfig --config \"$CAIDO_FORMATTER_ROOT/configs/prettier.json\" \"$@\"", "--"]
+includes = ["*.ts", "*.tsx", "*.mts", "*.cts", "*.js", "*.jsx", "*.mjs", "*.cjs", "*.vue", "*.html", "*.css", "*.scss", "*.json", "*.jsonc", "*.graphql", "*.md", "*.yml", "*.yaml"]
+
+[formatter.rustfmt]
+command = "sh"
+options = ["-eu", "-c", "exec rustup run nightly-2026-04-06 rustfmt --edition 2024 --config-path \"$CAIDO_FORMATTER_ROOT/configs/rustfmt.toml\" --config skip_children=true \"$@\"", "--"]
+includes = ["*.rs"]
+excludes = ["proxy-tests/tests/common/macros/*"]
+
+[formatter.ruff]
+command = "sh"
+options = ["-eu", "-c", "exec ruff format --force-exclude --config \"$CAIDO_FORMATTER_ROOT/configs/ruff.toml\" \"$@\"", "--"]
+includes = ["*.py", "*.pyi", "*.ipynb"]
+
+[formatter.tofu]
+command = "tofu"
+options = ["fmt"]
+includes = ["*.tf", "*.tfvars", "*.tftest.hcl"]
+
+[formatter.shfmt]
+command = "shfmt"
+options = ["-w"]
+includes = ["*.sh", "*.bash", "*.bats"]
+
+[formatter.stylua]
+command = "stylua"
+options = []
+includes = ["*.lua", "*.luau"]
+
+[formatter.deno]
+command = "deno"
+options = ["fmt"]
+includes = ["*.ts", "*.tsx", "*.js", "*.jsx", "*.json", "*.jsonc", "*.md"]
+
+[formatter.nixfmt]
+command = "nixfmt"
+options = []
+includes = ["*.nix"]
+
+[formatter.sqlfluff]
+command = "sqlfluff"
+options = ["format", "--dialect", "postgres"]
+includes = ["*.sql"]
+
+[formatter.black]
+command = "black"
+options = []
+includes = ["*.py", "*.pyi"]
