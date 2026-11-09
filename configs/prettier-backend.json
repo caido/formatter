@@ -1,8 +1,0 @@
-{
-  "overrides": [
-    {
-      "files": ["*.graphql"],
-      "options": { "tabWidth": 2, "useTabs": false, "printWidth": 100 }
-    }
-  ]
-}

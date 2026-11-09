@@ -2,30 +2,36 @@
 set -eu
 
 usage() {
-  echo "Usage: format <profile|default> [--root DIRECTORY] [treefmt options and paths...]" >&2
-  echo "Defaults to the current directory; use --ci for CI checks." >&2
+	echo "Usage: format <profile|default> [--root DIRECTORY] [treefmt options and paths...]" >&2
+	echo "Defaults to the current directory; use --ci for CI checks." >&2
 }
 
-if [ "$#" -eq 0 ]; then usage; exit 2; fi
+if [ "$#" -eq 0 ]; then
+	usage
+	exit 2
+fi
 profile=$1
 shift
 case "$profile" in
-  -h|--help) usage; exit 0 ;;
-  *[!a-z0-9-]*|'') echo "Invalid profile: $profile" >&2; exit 2 ;;
+-h | --help)
+	usage
+	exit 0
+	;;
+*[!a-z0-9-]* | '')
+	echo "Invalid profile: $profile" >&2
+	exit 2
+	;;
 esac
-CAIDO_FORMATTER_ROOT=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-export CAIDO_FORMATTER_ROOT
-if [ "$profile" = default ]; then
-  config="$CAIDO_FORMATTER_ROOT/treefmt.toml"
-else
-  config="$CAIDO_FORMATTER_ROOT/profiles/$profile.toml"
-fi
-if [ ! -f "$config" ]; then echo "Unknown profile: $profile" >&2; exit 2; fi
+formatter_root=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 if [ "${1:-}" = --root ]; then
-  if [ "$#" -lt 2 ]; then usage; exit 2; fi
-  target_root=$(CDPATH= cd -- "$2" && pwd -P)
-  shift 2
+	if [ "$#" -lt 2 ]; then
+		usage
+		exit 2
+	fi
+	target_root=$(CDPATH= cd -- "$2" && pwd -P)
+	shift 2
 else
-  target_root=$(pwd -P)
+	target_root=$(pwd -P)
 fi
-exec treefmt --config-file "$config" --tree-root "$target_root" --working-dir "$target_root" "$@"
+exec nix --extra-experimental-features 'nix-command flakes' run "$formatter_root#$profile" -- \
+	--tree-root "$target_root" --working-dir "$target_root" "$@"

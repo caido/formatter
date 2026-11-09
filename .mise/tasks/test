@@ -1,0 +1,4 @@
+#!/usr/bin/env sh
+#MISE description="Check Nix configuration, formatting and real formatter routing"
+set -eu
+exec nix flake check

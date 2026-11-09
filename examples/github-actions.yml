@@ -11,14 +11,11 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 10
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
-      - uses: caido/action-mise-action@5ac50f778e26fac95da98d50503682459e86d566 # v3.2.0
+      - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31
         with:
-          version: "2026.10.6"
-          install: false
-      - name: Validate configs and file routing
-        run: |
-          mise exec treefmt@2.6.0 python@3.12.14 -- treefmt --version
-          mise exec treefmt@2.6.0 python@3.12.14 -- python3 -m unittest discover -s tests -v
+          github_access_token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Validate configuration, formatting and real formatter routing
+        run: nix flake check --show-trace

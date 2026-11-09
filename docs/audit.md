@@ -1,5 +1,7 @@
 # Formatter audit — 2026-10-28
 
+This is the historical source audit. The treefmt-nix migration retains the audited project settings and file scopes, while package versions now come from `flake.lock`. See the current README for the migration's version changes.
+
 The audit inspected default-branch file trees for all **169** repositories accessible in the Caido organization, including forks and archived repositories. None of the tree responses were truncated. It read **392** matching config/task/manifests from the **99 first-party repositories** (84 active, 15 archived). Forks were scanned for matching filenames and recorded in the inventory; upstream fork settings were not adopted as organization defaults.
 
 Files inspected include formatter configs, ESLint configs containing Prettier integrations, Python project settings, package scripts/dependencies, mise tools/tasks, Makefiles and justfiles. Selected Nix shells and CI tasks were also checked. The inventory is evidence of the checked filenames and revisions, not proof that a formatter dependency is actively enforced. Generated/vendored paths were excluded from content inspection. Arbitrary custom scripts or CI workflow names outside these patterns may need a follow-up audit.
