@@ -10,6 +10,7 @@ permissions:
 
 jobs:
   validate:
+    name: Validate configuration
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -25,5 +26,19 @@ jobs:
         run: nix flake check --all-systems --no-build --no-update-lock-file --show-trace
       - name: Build generated treefmt configuration
         run: nix build --no-link --no-update-lock-file .#config
+
+  formatting:
+    name: Check formatting
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6.1.0
+        with:
+          persist-credentials: false
+      - uses: DeterminateSystems/nix-installer-action@3138316df39ed29be04236d7ffc686fa525866aa # v23
+      - uses: DeterminateSystems/magic-nix-cache-action@84c0677f58dcedf3b91f8223ce36a9ea5b3c84b7 # v15
+        with:
+          use-gha-cache: true
+          use-flakehub: false
       - name: Check formatting
         run: nix flake check --no-update-lock-file --show-trace

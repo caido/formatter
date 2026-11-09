@@ -16,6 +16,8 @@ Use a locked Nix flake and one shared treefmt-nix configuration in `caido/format
 
 Repositories use the identical `lib.forProject self` flake wiring to expose `nix fmt` and a formatting-only `nix flake check`. Use treefmt-nix’s module evaluation and standard formatting check without a custom test suite. The requested interface is Nix only, with no separate task layer.
 
+CI uses the Determinate Nix installer and Magic Nix Cache, as explicitly requested for this experiment. This includes a scoped exception proposal to [STD-021](https://github.com/caido/engineering/blob/main/standards/STD-021-ci-caching.md), which otherwise limits CI caching to Rust work. Configuration validation and formatting run as separate jobs under STD-005.
+
 Keep this experiment confined to the shared formatter repository. Do not change the approved tooling standard or migrate consuming repositories as part of this PR. Maintainer acceptance of this proposal and its scoped exception is required before adopting it beyond the experiment.
 
 ## Consequences
