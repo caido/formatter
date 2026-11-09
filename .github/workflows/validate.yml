@@ -24,8 +24,8 @@ jobs:
           use-flakehub: false
       - name: Evaluate configuration on all supported systems
         run: nix flake check --all-systems --no-build --no-update-lock-file --show-trace
-      - name: Build generated treefmt configuration
-        run: nix build --no-link --no-update-lock-file .#config
+      - name: Build formatter and generated configuration
+        run: nix build --no-link --no-update-lock-file .#formatter.x86_64-linux
 
   formatting:
     name: Check formatting
@@ -41,4 +41,4 @@ jobs:
           use-gha-cache: true
           use-flakehub: false
       - name: Check formatting
-        run: nix flake check --no-update-lock-file --show-trace
+        run: nix run --no-update-lock-file .#formatting-check
