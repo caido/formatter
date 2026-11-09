@@ -1,4 +1,4 @@
-name: Validate formatter configuration
+name: Check formatting
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ permissions:
   contents: read
 
 jobs:
-  test:
+  formatting:
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -17,5 +17,5 @@ jobs:
       - uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31
         with:
           github_access_token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Validate configuration, formatting and real formatter routing
+      - name: Check formatting only
         run: nix flake check --no-update-lock-file --show-trace

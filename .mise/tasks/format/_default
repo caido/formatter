@@ -1,4 +1,0 @@
-#!/usr/bin/env sh
-#MISE description="Format this repository"
-set -eu
-exec nix fmt --no-update-lock-file

@@ -1,104 +1,151 @@
-{
-  config,
-  lib,
-  pkgs,
-  ...
-}:
+{ pkgs, ... }:
 let
-  profiles = import ./nix/profiles.nix;
-  styles = import ./nix/settings.nix;
-  profile = profiles.${config.caido.profile};
-  routes = profile.formatters;
-  route = name: routes.${name} or { };
-  style = family: styles.${family}.${(route family).style or "default"};
   json = pkgs.formats.json { };
   toml = pkgs.formats.toml { };
-
-  # The names used by treefmt-nix for the audited Ruff and OpenTofu entries.
-  programName =
-    name:
-    {
-      ruff = "ruff-format";
-      tofu = "terraform";
-    }
-    .${name} or name;
-  nativeRoutes = lib.filterAttrs (name: _: name != "oxfmt-root") routes;
-  # Respect downstream mkForce enable/disable overrides as well as the preset.
-  enabled = name: config.programs.${programName name}.enable or false;
+  rustfmt = pkgs.rust-bin.nightly."2026-04-06".minimal.override {
+    extensions = [ "rustfmt" ];
+  };
+  rustSettings = toml.generate "caido-rustfmt.toml" {
+    unstable_features = true;
+    style_edition = "2024";
+    group_imports = "StdExternalCrate";
+    imports_granularity = "Module";
+    single_line_if_else_max_width = 80;
+    skip_children = true;
+  };
+  # Cargo's language edition is parser metadata, not a formatting preset.
+  # Every crate uses the same rustfmt binary and the same style settings.
+  rustCommand = pkgs.writeShellScriptBin "caido-rustfmt" ''
+    exec ${pkgs.python3}/bin/python3 ${./support/rustfmt.py} \
+      ${rustfmt}/bin/rustfmt ${rustSettings} "$@"
+  '';
+  sqlSettings = (pkgs.formats.ini { }).generate "caido-sqlfluff.cfg" {
+    sqlfluff = {
+      dialect = "postgres";
+      max_line_length = 80;
+    };
+  };
 in
 {
-  options.caido.profile = lib.mkOption {
-    type = lib.types.enum (builtins.attrNames profiles);
-    default = "default";
-    description = "Audited Caido formatter profile to use.";
+  projectRootFile = null;
+  settings.on-unmatched = "debug";
+  settings.excludes = [
+    ".git/*"
+    "node_modules/*"
+    "*/node_modules/*"
+    "dist/*"
+    "*/dist/*"
+    "target/*"
+    "*/target/*"
+    "coverage/*"
+    "*/coverage/*"
+    ".venv/*"
+    "*/.venv/*"
+    ".terraform/*"
+    "*/.terraform/*"
+    "**/__generated__/**"
+    "*.min.js"
+    "*.min.css"
+    "result"
+    "result-*"
+  ];
+
+  programs = {
+    oxfmt.enable = true;
+    ruff-format = {
+      enable = true;
+      includes = [
+        "*.py"
+        "*.pyi"
+        "*.ipynb"
+      ];
+    };
+    terraform.enable = true;
+    shfmt = {
+      enable = true;
+      indent_size = 2;
+      simplify = false;
+      includes = [
+        "*.sh"
+        "*.bash"
+        "*.bats"
+        "*.envrc"
+      ];
+    };
+    stylua = {
+      enable = true;
+      includes = [
+        "*.lua"
+        "*.luau"
+      ];
+      settings = {
+        column_width = 80;
+        line_endings = "Unix";
+        indent_type = "Spaces";
+        indent_width = 2;
+        quote_style = "AutoPreferDouble";
+        call_parentheses = "Always";
+        collapse_simple_statement = "Never";
+        sort_requires.enabled = false;
+      };
+    };
+    nixfmt.enable = true;
+    sqlfluff = {
+      enable = true;
+      dialect = "postgres";
+    };
   };
 
-  config = {
-    # Keep Git/worktree root detection in treefmt itself. In particular, do not
-    # anchor a packaged formatter to the formatter repository's flake.nix.
-    projectRootFile = null;
-    enableDefaultExcludes = false;
-    settings.on-unmatched = "debug";
-    settings.excludes =
-      import ./nix/excludes.nix
-      ++ (profile.excludes or [ ])
-      ++ [
-        "result"
-        "result-*"
-      ];
-
-    programs = lib.mkMerge [
-      (lib.mapAttrs' (
-        name: value:
-        lib.nameValuePair (programName name) {
-          enable = true;
-          includes = value.includes;
-          excludes = value.excludes or [ ];
+  settings.formatter = {
+    oxfmt.options = [
+      "--write"
+      "--config"
+      (toString (
+        json.generate "caido-oxfmt.json" {
+          printWidth = 80;
+          tabWidth = 2;
+          useTabs = false;
+          semi = true;
+          singleQuote = false;
+          trailingComma = "all";
+          endOfLine = "lf";
+          sortImports = {
+            groups = [
+              "builtin"
+              "external"
+              "internal"
+              "parent"
+              "sibling"
+              "index"
+            ];
+            newlinesBetween = true;
+            ignoreCase = true;
+            order = "asc";
+          };
         }
-      ) nativeRoutes)
-      {
-        prettier.settings = style "prettier";
-        rustfmt.edition = (route "rustfmt").edition or "2024";
-        # Preserve the previous `shfmt -w` behavior; treefmt-nix otherwise adds
-        # two-space indentation and simplification by default.
-        shfmt.useEditorConfig = true;
-        sqlfluff.dialect = "postgres";
-      }
+      ))
+      "--disable-nested-config"
+      "--ignore-path"
+      (toString (pkgs.writeText "caido-oxfmt-ignore" ""))
     ];
-
-    settings.formatter = lib.mkMerge [
-      (lib.mkIf (enabled "oxfmt") {
-        oxfmt.options = [
-          "--write"
-          "--config"
-          (toString (json.generate "caido-oxfmt.json" (style "oxfmt")))
-        ];
-      })
-      (lib.mkIf (routes ? oxfmt-root && enabled "oxfmt") {
-        # A separate root-only entry prevents *.ts from matching unrelated
-        # subdirectories while retaining the frontend's source scopes.
-        oxfmt-root = {
-          command = lib.getExe config.programs.oxfmt.package;
-          options = config.settings.formatter.oxfmt.options;
-          inherit (routes.oxfmt-root) includes excludes;
-        };
-      })
-      (lib.mkIf (enabled "prettier") {
-        prettier.options = [ "--no-editorconfig" ];
-      })
-      (lib.mkIf (enabled "rustfmt") {
-        rustfmt.options = [
-          "--config-path"
-          (toString (toml.generate "caido-rustfmt.toml" (style "rustfmt")))
-        ];
-      })
-      (lib.mkIf (enabled "ruff") {
-        ruff-format.options = [
-          "--force-exclude"
-          "--config"
-          (toString (toml.generate "caido-ruff.toml" (style "ruff")))
-        ];
-      })
+    ruff-format.options = [
+      "--config"
+      (toString (
+        toml.generate "caido-ruff.toml" {
+          line-length = 88;
+          target-version = "py311";
+        }
+      ))
+    ];
+    rustfmt = {
+      command = rustCommand;
+      includes = [ "*.rs" ];
+    };
+    sqlfluff.options = [
+      "--ignore-local-config"
+      "--disregard-sqlfluffignores"
+      "--config"
+      (toString sqlSettings)
     ];
   };
 }
