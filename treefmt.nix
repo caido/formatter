@@ -5,7 +5,7 @@ let
   rustfmt = pkgs.rust-bin.nightly."2026-04-06".minimal.override {
     extensions = [ "rustfmt" ];
   };
-  readTOML = path: builtins.fromTOML (builtins.readFile path);
+  readTOML = path: fromTOML (builtins.readFile path);
   rustSettings = toml.generate "caido-rustfmt.toml" (readTOML ./configs/rustfmt.toml);
 in
 {

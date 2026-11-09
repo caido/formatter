@@ -1,10 +1,10 @@
 # Caido formatter
 
-One shared [treefmt-nix](https://github.com/numtide/treefmt-nix) configuration for every repository. Each language always uses the same formatter, version and settings. There are no project presets or local formatter settings to maintain.
+This repo contains the formatting rules for every language and data serialization format that we use at [caido](https://caido.io). It exposes contains a nix flake that provides utilities to make sure files are properly formatted in your projects. Every formatter we use is pinned here in the `flake.lock` and installed on the fly when the fmt command is run. It is based on [treefmt-nix](https://github.com/numtide/treefmt-nix).
 
 ## Add to any project
 
-Use this identical `flake.nix` in every repository:
+Add this `flake.nix` to your repos:
 
 ```nix
 {
@@ -19,22 +19,12 @@ Then run:
 
 ```sh
 nix fmt
-nix flake check
+nix run .#formatting-check
 ```
 
-The shared helper checks **your repository's source**. It exports only a `formatting` check and a `formatting-check` package. It checks the consuming repository rather than the library's source. An existing flake can merge these outputs with its other outputs; no formatter-specific settings are required.
+## Configs 
 
-`nix flake check` runs all entries under `checks`; it has no check-name filter. If your flake adds other checks, run formatting alone with:
-
-```sh
-nix build --no-link .#formatting-check
-```
-
-This check formats a disposable source copy and leaves your working tree unchanged. Use `--no-update-lock-file` with these commands in CI to reject missing or stale lockfiles.
-
-## The shared configuration
-
-`treefmt.nix` selects formatter packages, file patterns and generic exclusions. Formatter-specific settings live in their native files:
+`treefmt.nix` selects formatters and files patterns. For formatter that supports it, the config is expressed in their standard config file in `config/`.
 
 ```text
 configs/
@@ -44,8 +34,6 @@ configs/
   stylua.toml
   sqlfluff.ini
 ```
-
-Shell flags stay in `treefmt.nix`; nixfmt and OpenTofu use their defaults. Every consuming repository shares these same files.
 
 The language mapping is:
 
@@ -60,30 +48,3 @@ The language mapping is:
 | Nix                                                                   | nixfmt                       |
 | SQL                                                                   | SQLFluff, PostgreSQL dialect |
 
-There is one set of language globs and generic dependency/generated-file exclusions. Existing per-repository formatter config files do not select alternate formatting settings. Prettier, Deno and Black are not alternative engines in this setup.
-
-All Rust files use edition 2024 and the shared 2024 style. Projects must update their `Cargo.toml` edition and migrate any incompatible code before adopting the shared formatter. Python formatting targets Python 3.11 compatibility everywhere.
-
-Nix parses the JSON/TOML settings during evaluation and generates the tool configuration files and treefmt TOML in the Nix store. SQLFluff uses the shared INI file directly from the store. Nixpkgs and rust-overlay are pinned in `flake.lock`, so formatter binaries do not come from a project's PATH. Update the shared input's lockfile pin to roll out a new version of this configuration.
-
-## Develop this library
-
-Configuration validation uses JSON/TOML parsing, treefmt-nix’s module option types and config generation. The SQLFluff INI file is passed through without Nix-side parsing. Formatter-specific settings passed through as data or arguments may still be rejected at runtime; there is no custom formatter test suite.
-
-The [validation workflow](.github/workflows/validate.yml) runs on pull requests and pushes to `main`. It uses the Determinate Nix installer and Magic Nix Cache backed by GitHub Actions. One job evaluates all supported systems and builds the generated treefmt configuration on Linux. A separate job checks repository formatting with the committed lockfile, so formatting has its own CI result.
-
-```sh
-# Same formatter and formatting-only check used by every consumer.
-nix fmt --no-update-lock-file
-nix flake check --no-update-lock-file
-
-# Evaluate module options and flake outputs on all supported systems without running checks.
-nix flake check --all-systems --no-build --no-update-lock-file
-
-# Inspect the generated shared treefmt configuration.
-cat "$(nix build --no-link --print-out-paths .#config)"
-```
-
-Requires Nix or Lix with `nix-command` and `flakes` enabled. Supported systems are Apple Silicon macOS and ARM64/x86_64 Linux. Private Git access is needed to fetch the shared input. The same minimal consumer flake is available in `templates/default`.
-
-[ADR 0001](docs/adrs/0001-evaluate-treefmt-nix-in-formatter.md) records the proposed tooling experiment.
