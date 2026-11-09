@@ -22,7 +22,7 @@ nix fmt
 nix run .#formatting-check
 ```
 
-## Configs 
+## Configs
 
 `treefmt.nix` selects formatters and files patterns. For formatter that supports it, the config is expressed in their standard config file in `config/`.
 
@@ -47,4 +47,3 @@ The language mapping is:
 | Lua/Luau                                                              | StyLua                       |
 | Nix                                                                   | nixfmt                       |
 | SQL                                                                   | SQLFluff, PostgreSQL dialect |
-
