@@ -1,122 +1,89 @@
 # Caido formatter
 
-Shared treefmt configuration for Caido projects, with tools managed by mise.
+One shared [treefmt-nix](https://github.com/numtide/treefmt-nix) configuration for every repository. Each language always uses the same formatter, version and settings. There are no project presets or local formatter settings to maintain.
 
-## Usage
+## Add to any project
 
-Clone this private repository alongside your projects. From this checkout:
+Use this identical `flake.nix` in every repository:
+
+```nix
+{
+  inputs.caido-formatter.url = "git+ssh://git@github.com/caido/formatter";
+
+  outputs = { self, caido-formatter, ... }:
+    caido-formatter.lib.forProject self;
+}
+```
+
+Then run:
 
 ```sh
-mise install
-
-# Format a project using its existing conventions.
-mise exec -- bin/format proxy-frontend --root ../proxy-frontend
-mise exec -- bin/format proxy-backend --root ../proxy-backend
-
-# Desktop uses an older Prettier version; the mise environment preserves it.
-mise --env proxy-desktop exec -- bin/format proxy-desktop --root ../proxy-desktop
-
-# CI: fail if formatting changes a file.
-mise exec -- bin/format proxy-backend --root ../proxy-backend --ci
-
-# Format selected files. Paths are relative to the target root.
-mise exec -- bin/format proxy-frontend --root ../proxy-frontend packages/ui/src/App.vue
+nix fmt
+nix flake check
 ```
 
-`treefmt --ci` **can rewrite files** before returning a failure. Run it in a CI checkout or on a clean working tree. Use the formatter's own check command when a strictly read-only check is required.
+The shared helper checks **your repository's source**. It exports only a `formatting` check and a `formatting-check` package. It checks the consuming repository rather than the library's source. An existing flake can merge these outputs with its other outputs; no formatter-specific settings are required.
 
-When tools are already supplied by a project's mise environment, install treefmt there and invoke `/path/to/formatter/bin/format <profile>` from the project root. The script uses executables on `PATH`; it does not install tools, change their versions, or load environment files itself. Use the version overrides in `mise.<profile>.toml` when running from this checkout.
-
-## Shared defaults
-
-`treefmt.toml` contains entries for every formatter family found in the audit:
-
-| Formatter | Files                                                                      | Default selection                              |
-| --------- | -------------------------------------------------------------------------- | ---------------------------------------------- |
-| Oxfmt     | TypeScript, JavaScript, Vue, HTML, CSS/SCSS, JSON, GraphQL, Markdown, YAML | Yes                                            |
-| rustfmt   | Rust, using nightly-2026-04-06 and edition 2024                            | Yes                                            |
-| Ruff      | Python, stubs, notebooks                                                   | Yes                                            |
-| OpenTofu  | Terraform/OpenTofu configuration and variable files                        | Yes                                            |
-| shfmt     | Shell files with `.sh`, `.bash`, or `.bats` extensions                     | Yes                                            |
-| StyLua    | Lua and Luau                                                               | Yes                                            |
-| Prettier  | Web code and text formats                                                  | Alternative to Oxfmt                           |
-| Deno      | JavaScript, TypeScript, JSON, Markdown                                     | Alternative to Oxfmt                           |
-| nixfmt    | Nix                                                                        | Optional; installed in backend Nix shells      |
-| SQLFluff  | PostgreSQL SQL                                                             | Optional; configuration found in cloud-backend |
-| Black     | Python and stubs                                                           | Legacy; found in archived projects             |
-
-Use `bin/format default` for the shared defaults. This is an opt-in organization baseline, not a claim that every existing project already follows it. The Rust baseline assumes edition 2024. Use the project presets for audited differences.
-
-The alternative entries are disabled in the default selection to prevent two tools from reformatting the same files. Select an optional engine explicitly, for example:
+`nix flake check` runs all entries under `checks`; it has no check-name filter. If your flake adds other checks, run formatting alone with:
 
 ```sh
-mise exec -- bin/format default --root ../infrastructure --formatters tofu
-bin/format nix --root ../nix-config
-bin/format postgres --root ../cloud-backend
+nix build --no-link .#formatting-check
 ```
 
-Deno, nixfmt, SQLFluff, and legacy Black are not installed by the base mise configuration. Supply them through the target project's environment, or explicitly install a chosen version. The audit did not establish a version pin for all of these tools. Never use a PostgreSQL SQL preset on dbt or templated SQL without checking compatibility.
+This check formats a disposable source copy and leaves your working tree unchanged. Use `--no-update-lock-file` with these commands in CI to reject missing or stale lockfiles.
 
-## Project presets
+## The shared configuration
 
-`profiles/` contains complete treefmt files; treefmt does not merge them with the root config.
+`treefmt.nix` selects formatter packages, file patterns and generic exclusions. Formatter-specific settings live in their native files:
 
-| Preset                                                                               | Behavior retained                                                             |
-| ------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| `proxy-backend`                                                                      | Nightly Rust, edition 2024, macro exclusion; Prettier GraphQL at width 100    |
-| `proxy-frontend`                                                                     | Oxfmt at width 80 with grouped/sorted imports and generated-file exclusions   |
-| `proxy-e2e`                                                                          | Oxfmt for TS/JS/MJS; excludes plugins, binaries, and Playwright output        |
-| `proxy-desktop`                                                                      | Prettier defaults on the four source packages currently covered by lint tasks |
-| `proxy-playground`, `proxy-extension`                                                | Prettier formatting; existing ESLint checks remain separate                   |
-| `cloud-backend`, `sync-backend`, `student-backend`, `sqlite-rs`, `cogfer`, `convert` | Existing Rust style settings; edition selected per project                    |
-| `internal-services`                                                                  | Oxfmt with shared import groups                                               |
-| `analytics`                                                                          | Ruff on the four Python app trees, excluding dbt's transform app              |
-| `caido-private`                                                                      | Ruff for Python 3.11, limited to scripts and tests                            |
-| `infrastructure`                                                                     | OpenTofu files under `tofu/`                                                  |
-| `infrastructure-yaml`                                                                | Existing single-quoted YAML convention, separately opt-in                     |
-| `mise-toolshed`                                                                      | Oxfmt, shfmt and StyLua; excludes generated mise locks                        |
-| `secrets-sync`                                                                       | Deno formatting, using the project's Deno configuration                       |
-| `electron-updater`                                                                   | Existing Prettier width 180, no semicolons, ES5 trailing commas               |
-| `analytics-ingestion`, `cloud-cron`                                                  | Legacy Black presets for archived projects                                    |
-| `nix`, `postgres`                                                                    | Optional infrastructure/database formatting                                   |
+```text
+configs/
+  oxfmt.json
+  ruff.toml
+  rustfmt.toml
+  stylua.toml
+  sqlfluff.ini
+```
 
-The presets centralize formatter style. They do not execute ESLint, Clippy, Ruff lint fixes, typechecking, dbt validation, or infrastructure validation. Keep those checks in the source repositories. Desktop's import ordering is an ESLint rule and is not replaced by running Prettier alone.
+Shell flags stay in `treefmt.nix`; nixfmt and OpenTofu use their defaults. Every consuming repository shares these same files.
 
-Rust files are passed directly to rustfmt with `skip_children=true`, so formatting one file cannot recursively modify excluded modules. Presets pin the nightly from proxy-backend; projects using floating nightly will need to review that stabilization. Cargo workspaces containing multiple editions need separate formatter entries or a Cargo-aware wrapper.
+The language mapping is:
 
-`configs/` stores settings that are clearer as companion files, notably Oxfmt import groups. `bin/format` resolves these relative to this checkout through `CAIDO_FORMATTER_ROOT`, even when the target project or shared checkout path contains spaces. Keep the entire checkout available. For direct treefmt use, export that variable first:
+| Files                                                                 | Formatter                    |
+| --------------------------------------------------------------------- | ---------------------------- |
+| JavaScript, TypeScript, Vue, HTML, CSS, JSON, GraphQL, Markdown, YAML | Oxfmt                        |
+| Python                                                                | Ruff                         |
+| Rust                                                                  | rustfmt, pinned nightly      |
+| Terraform/OpenTofu                                                    | OpenTofu                     |
+| Shell                                                                 | shfmt                        |
+| Lua/Luau                                                              | StyLua                       |
+| Nix                                                                   | nixfmt                       |
+| SQL                                                                   | SQLFluff, PostgreSQL dialect |
+
+There is one set of language globs and generic dependency/generated-file exclusions. Existing per-repository formatter config files do not select alternate formatting settings. Prettier, Deno and Black are not alternative engines in this setup.
+
+All Rust files use edition 2024 and the shared 2024 style. Projects must update their `Cargo.toml` edition and migrate any incompatible code before adopting the shared formatter. Python formatting targets Python 3.11 compatibility everywhere.
+
+Nix parses the JSON/TOML settings during evaluation and generates the tool configuration files and treefmt TOML in the Nix store. SQLFluff uses the shared INI file directly from the store. Nixpkgs and rust-overlay are pinned in `flake.lock`, so formatter binaries do not come from a project's PATH. Update the shared input's lockfile pin to roll out a new version of this configuration.
+
+## Develop this library
+
+Configuration validation uses JSON/TOML parsing, treefmt-nix’s module option types and config generation. The SQLFluff INI file is passed through without Nix-side parsing. Formatter-specific settings passed through as data or arguments may still be rejected at runtime; there is no custom formatter test suite.
+
+The [validation workflow](.github/workflows/validate.yml) runs on pull requests and pushes to `main`. It uses the Determinate Nix installer and Magic Nix Cache backed by GitHub Actions. One job evaluates all supported systems and builds the generated treefmt configuration on Linux. A separate job checks repository formatting with the committed lockfile, so formatting has its own CI result.
 
 ```sh
-export CAIDO_FORMATTER_ROOT=/absolute/path/to/formatter
-treefmt --config-file "$CAIDO_FORMATTER_ROOT/profiles/proxy-backend.toml"
+# Same formatter and formatting-only check used by every consumer.
+nix fmt --no-update-lock-file
+nix flake check --no-update-lock-file
+
+# Evaluate module options and flake outputs on all supported systems without running checks.
+nix flake check --all-systems --no-build --no-update-lock-file
+
+# Inspect the generated shared treefmt configuration.
+cat "$(nix build --no-link --print-out-paths .#config)"
 ```
 
-## Mise integration in a consuming project
+Requires Nix or Lix with `nix-command` and `flakes` enabled. Supported systems are Apple Silicon macOS and ARM64/x86_64 Linux. Private Git access is needed to fetch the shared input. The same minimal consumer flake is available in `templates/default`.
 
-Pin this repository to a reviewed commit or release, then add tasks that point at the checkout. For example, when the shared checkout is a sibling:
-
-```toml
-[tasks.format]
-run = 'mise -C ../formatter exec -- bin/format proxy-frontend --root "$MISE_PROJECT_ROOT"'
-
-[tasks."format:check"]
-run = 'mise -C ../formatter exec -- bin/format proxy-frontend --root "$MISE_PROJECT_ROOT" --ci'
-```
-
-This repository does not change or migrate consuming projects automatically. Review tool versions, nested configs, generated paths, and the initial formatting diff when adopting a preset. In particular, extensionless shell scripts need explicit project globs; the default shell entry only matches known extensions.
-
-## Maintenance
-
-The [audit report](docs/audit.md) records the scope and findings. [The inventory](docs/inventory.json) pins source commits and lists matching config/task paths for all 169 repositories scanned on 2026-10-28. Forks and archived projects are identified separately; their conventions are not silently promoted to shared defaults.
-
-[A GitHub Actions workflow](examples/github-actions.yml) is included as an example. To activate CI, copy it to `.github/workflows/validate.yml` using a GitHub connection with workflow write permission. The connection used to initialize this repository could upload contents but could not activate workflows.
-
-```sh
-mise test
-mise format
-mise format:check
-```
-
-Tests exercise treefmt's real routing and shell invocation with stub formatter executables, including path handling, exclusions, competing engines, and CI failure behavior. Optional formatter engines must also be checked against their real pinned CLI before rollout.
-
-Initial validation also ran the real Oxfmt 0.53.0, Prettier 3.7.4, nightly-2026-04-06 rustfmt, and OpenTofu 1.9.1 against scratch projects. All Rust presets accepted their configs; the infrastructure preset successfully formatted multiple files in one batch.
+[ADR 0001](docs/adrs/0001-evaluate-treefmt-nix-in-formatter.md) records the proposed tooling experiment.
