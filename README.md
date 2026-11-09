@@ -70,7 +70,7 @@ Nix parses the JSON/TOML settings during evaluation and generates the tool confi
 
 Configuration validation uses JSON/TOML parsing, treefmt-nix’s module option types and config generation. The SQLFluff INI file is passed through without Nix-side parsing. Formatter-specific settings passed through as data or arguments may still be rejected at runtime; there is no custom formatter test suite.
 
-The [validation workflow](.github/workflows/validate.yml) runs on pull requests and pushes to `main`. It evaluates all supported systems, builds the generated treefmt configuration on Linux and checks repository formatting with the committed lockfile.
+The [validation workflow](.github/workflows/validate.yml) runs on pull requests and pushes to `main`. It uses the Determinate Nix installer and Magic Nix Cache backed by GitHub Actions. It evaluates all supported systems, builds the generated treefmt configuration on Linux and checks repository formatting with the committed lockfile.
 
 ```sh
 # Same formatter and formatting-only check used by every consumer.
