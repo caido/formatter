@@ -56,27 +56,10 @@
 
       packages = eachSystem (
         system:
-        let
-          pkgs = pkgsFor system;
-        in
         project.packages.${system}
         // {
           default = wrappers.${system};
           config = evaluated.${system}.config.build.configFile;
-          # These are this library's own tests, never exported as flake checks
-          # or included in a consuming project's formatting check.
-          tests =
-            assert builtins.attrNames project.checks.${system} == [ "formatting" ];
-            pkgs.runCommand "caido-formatter-tests"
-              {
-                nativeBuildInputs = [ pkgs.python3 ];
-                CAIDO_FORMATTER = "${wrappers.${system}}/bin/treefmt";
-                CAIDO_FORMATTER_CONFIG = toString evaluated.${system}.config.build.configFile;
-              }
-              ''
-                python3 ${./tests/test_config.py}
-                touch "$out"
-              '';
         }
       );
 

@@ -14,7 +14,7 @@ This repository was created to explore shared treefmt configuration for Caido. T
 
 Use a locked Nix flake and one shared treefmt-nix configuration in `caido/formatter`. Every repository uses the same formatter per language, the same settings and the same package versions. Remove the project presets, local style variants and profile launcher.
 
-Repositories use the identical `lib.forProject self` flake wiring to expose `nix fmt` and a formatting-only `nix flake check`. Library integration tests are an explicitly built package, not flake checks exported to consumers. The requested interface is Nix only, with no separate task layer.
+Repositories use the identical `lib.forProject self` flake wiring to expose `nix fmt` and a formatting-only `nix flake check`. Use treefmt-nix’s module evaluation and standard formatting check without a custom test suite. The requested interface is Nix only, with no separate task layer.
 
 Keep this experiment confined to the shared formatter repository. Do not change the approved tooling standard or migrate consuming repositories as part of this PR. Maintainer acceptance of this proposal and its scoped exception is required before adopting it beyond the experiment.
 

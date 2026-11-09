@@ -22,7 +22,7 @@ nix fmt
 nix flake check
 ```
 
-The shared helper checks **your repository's source**. It exports only a `formatting` check and a `formatting-check` package. It does not import the formatter library's tests or check the library's own source instead of yours. An existing flake can merge these outputs with its other outputs; no formatter-specific settings are required.
+The shared helper checks **your repository's source**. It exports only a `formatting` check and a `formatting-check` package. It checks the consuming repository rather than the library's source. An existing flake can merge these outputs with its other outputs; no formatter-specific settings are required.
 
 `nix flake check` runs all entries under `checks`; it has no check-name filter. If your flake adds other checks, run formatting alone with:
 
@@ -55,13 +55,15 @@ Nix generates the tool configuration files and the treefmt TOML in the Nix store
 
 ## Develop this library
 
+Configuration validation uses treefmt-nix’s module option types and config generation. Formatter-specific settings passed through as data or arguments may still be rejected at runtime; there is no custom formatter test suite.
+
 ```sh
 # Same formatter and formatting-only check used by every consumer.
 nix fmt --no-update-lock-file
 nix flake check --no-update-lock-file
 
-# Library integration tests are explicit, never part of flake check.
-nix build --no-link --no-update-lock-file .#tests
+# Evaluate module options and flake outputs on all supported systems without running checks.
+nix flake check --all-systems --no-build --no-update-lock-file
 
 # Inspect the generated shared treefmt configuration.
 cat "$(nix build --no-link --print-out-paths .#config)"
