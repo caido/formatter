@@ -63,12 +63,6 @@
         }
       );
 
-      apps = eachSystem (system: {
-        default = {
-          type = "app";
-          program = "${wrappers.${system}}/bin/treefmt";
-        };
-      });
       devShells = eachSystem (system: {
         default = evaluated.${system}.config.build.devShell;
       });
