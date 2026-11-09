@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
-#MISE description="Check Nix configuration, formatting and real formatter routing"
+#MISE description="Check Nix configuration and real formatter routing"
 set -eu
-exec nix flake check
+exec nix build --no-link --no-update-lock-file .#tests

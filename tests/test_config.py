@@ -155,8 +155,15 @@ class RoutingTests(unittest.TestCase):
         self.assert_success(self.run_formatter("infrastructure", "--ci"))
 
     def test_ci_reports_change_then_succeeds_after_formatting(self):
-        self.write("packages/ui/src/a.ts", "export const a={b:1}")
-        self.assertNotEqual(self.run_formatter("proxy-frontend", "--ci").returncode, 0)
+        source = self.write("packages/ui/src/a.ts", "export const a={b:1}")
+        before = source.read_text()
+        first = self.run_formatter("proxy-frontend", "--ci")
+        self.assertNotEqual(first.returncode, 0)
+        self.assertIn(
+            "unexpected changes detected, --fail-on-change is enabled",
+            first.stdout + first.stderr,
+        )
+        self.assertNotEqual(source.read_text(), before)
         self.assert_success(self.run_formatter("proxy-frontend", "--ci"))
 
     def test_packaged_tools_do_not_use_ambient_path(self):
@@ -215,7 +222,8 @@ class LauncherTests(unittest.TestCase):
             self.assertEqual(result.returncode, 0, result.stderr)
             args = json.loads(capture.read_text())
             self.assertIn("run", args)
-            self.assertTrue(args[args.index("run") + 1].endswith("#proxy-frontend"))
+            self.assertEqual(args[args.index("run") + 1], "--no-update-lock-file")
+            self.assertTrue(args[args.index("run") + 2].endswith("#proxy-frontend"))
             self.assertEqual(args[args.index("--tree-root") + 1], str(target.resolve()))
             self.assertEqual(
                 args[args.index("--working-dir") + 1], str(target.resolve())

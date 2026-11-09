@@ -10,7 +10,7 @@ Requires Nix or Lix with `nix-command` and `flakes` enabled. From this checkout:
 
 ```sh
 # Format this repository's Nix, Python, shell, JSON, YAML and Markdown.
-nix fmt
+nix fmt --no-update-lock-file
 
 # Format another project with its audited preset.
 bin/format proxy-backend --root ../proxy-backend
@@ -31,13 +31,13 @@ Each preset is a Nix app and package. You can bypass the convenience launcher:
 
 ```sh
 # Run from proxy-backend's root; treefmt detects that Git worktree.
-nix run /path/to/formatter#proxy-backend -- .
+nix run --no-update-lock-file /path/to/formatter#proxy-backend -- .
 
 # Explicit target root from another directory.
-nix run .#proxy-backend -- --tree-root ../proxy-backend --working-dir ../proxy-backend
+nix run --no-update-lock-file .#proxy-backend -- --tree-root ../proxy-backend --working-dir ../proxy-backend
 
 # Build a standalone treefmt wrapper with all dependencies and settings.
-nix build .#proxy-backend
+nix build --no-update-lock-file .#proxy-backend
 ./result/bin/treefmt --tree-root ../proxy-backend --working-dir ../proxy-backend
 ```
 
@@ -130,7 +130,7 @@ When importing the module, non-Rust package versions come from the `pkgs` passed
 
 ## Mise and maintenance
 
-Mise can remain the development-environment/task entry point. This repository uses `.mise/config.toml` and executable task files under `.mise/tasks/`, with no formatter tools to install through mise. The `format`, `format:check` and `test` tasks call Nix.
+Mise can remain the development-environment/task entry point. This repository uses `.mise/config.toml` and executable task files under `.mise/tasks/`, with no formatter tools to install through mise. `format` runs the self formatter, `format:check` builds only the formatting check, and `test` builds the configuration/routing checks. These commands reject lockfile updates; update dependencies explicitly with `nix flake update`.
 
 A consuming project can create executable `.mise/tasks/format/_default`:
 
@@ -151,9 +151,11 @@ exec ../formatter/bin/format proxy-frontend --root "$MISE_PROJECT_ROOT" --ci
 Validation uses the real Nix-packaged binaries, including six-language routing, excluded files, Rust child modules, paths with spaces, idempotence and independence from the host PATH:
 
 ```sh
-nix flake check
-nix flake check --all-systems --no-build
-nix develop
+nix flake check --no-update-lock-file
+nix flake check --all-systems --no-build --no-update-lock-file
+nix build --no-link --no-update-lock-file .#formatting-check
+nix build --no-link --no-update-lock-file .#tests
+nix develop --no-update-lock-file
 ```
 
 Supported systems are Apple Silicon macOS (`aarch64-darwin`) and ARM64/x86_64 Linux. The locked Nixpkgs release no longer supports Intel macOS. [The GitHub Actions example](examples/github-actions.yml) installs Nix and runs `nix flake check`. It remains an example; activating it requires workflow write permission.

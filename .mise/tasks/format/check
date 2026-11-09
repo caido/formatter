@@ -1,4 +1,4 @@
 #!/usr/bin/env sh
 #MISE description="Check formatting in a disposable Nix build"
 set -eu
-exec nix flake check
+exec nix build --no-link --no-update-lock-file .#formatting-check

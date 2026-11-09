@@ -89,6 +89,17 @@
         wrappers
         // configFiles
         // {
+          formatting-check = configs.self.config.build.check self;
+          tests = pkgs.linkFarm "caido-formatter-tests" [
+            {
+              name = "configuration";
+              path = self.checks.${system}.configuration;
+            }
+            {
+              name = "routing";
+              path = self.checks.${system}.routing;
+            }
+          ];
           versions = pkgs.writeText "caido-formatter-versions.json" (
             builtins.toJSON (
               builtins.mapAttrs (_: value: value.version) {

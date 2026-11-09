@@ -33,5 +33,5 @@ if [ "${1:-}" = --root ]; then
 else
 	target_root=$(pwd -P)
 fi
-exec nix --extra-experimental-features 'nix-command flakes' run "$formatter_root#$profile" -- \
+exec nix --extra-experimental-features 'nix-command flakes' run --no-update-lock-file "$formatter_root#$profile" -- \
 	--tree-root "$target_root" --working-dir "$target_root" "$@"
