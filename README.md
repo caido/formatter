@@ -34,7 +34,20 @@ This check formats a disposable source copy and leaves your working tree unchang
 
 ## The shared configuration
 
-All formatting policy lives in **`treefmt.nix`**:
+`treefmt.nix` selects formatter packages, file patterns and generic exclusions. Formatter-specific settings live in their native files:
+
+```text
+configs/
+  oxfmt.json
+  ruff.toml
+  rustfmt.toml
+  stylua.toml
+  sqlfluff.ini
+```
+
+Shell flags stay in `treefmt.nix`; nixfmt and OpenTofu use their defaults. Every consuming repository shares these same files.
+
+The language mapping is:
 
 | Files                                                                 | Formatter                    |
 | --------------------------------------------------------------------- | ---------------------------- |
@@ -51,11 +64,11 @@ There is one set of language globs and generic dependency/generated-file exclusi
 
 All Rust files use edition 2024 and the shared 2024 style. Projects must update their `Cargo.toml` edition and migrate any incompatible code before adopting the shared formatter. Python formatting targets Python 3.11 compatibility everywhere.
 
-Nix generates the tool configuration files and the treefmt TOML in the Nix store. Nixpkgs and rust-overlay are pinned in `flake.lock`, so formatter binaries do not come from a project's PATH. Update the shared input's lockfile pin to roll out a new version of this configuration.
+Nix parses the JSON/TOML settings during evaluation and generates the tool configuration files and treefmt TOML in the Nix store. SQLFluff uses the shared INI file directly from the store. Nixpkgs and rust-overlay are pinned in `flake.lock`, so formatter binaries do not come from a project's PATH. Update the shared input's lockfile pin to roll out a new version of this configuration.
 
 ## Develop this library
 
-Configuration validation uses treefmt-nix’s module option types and config generation. Formatter-specific settings passed through as data or arguments may still be rejected at runtime; there is no custom formatter test suite.
+Configuration validation uses JSON/TOML parsing, treefmt-nix’s module option types and config generation. The SQLFluff INI file is passed through without Nix-side parsing. Formatter-specific settings passed through as data or arguments may still be rejected at runtime; there is no custom formatter test suite.
 
 ```sh
 # Same formatter and formatting-only check used by every consumer.

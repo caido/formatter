@@ -5,21 +5,8 @@ let
   rustfmt = pkgs.rust-bin.nightly."2026-04-06".minimal.override {
     extensions = [ "rustfmt" ];
   };
-  rustSettings = toml.generate "caido-rustfmt.toml" {
-    unstable_features = true;
-    edition = "2024";
-    style_edition = "2024";
-    group_imports = "StdExternalCrate";
-    imports_granularity = "Module";
-    single_line_if_else_max_width = 80;
-    skip_children = true;
-  };
-  sqlSettings = (pkgs.formats.ini { }).generate "caido-sqlfluff.cfg" {
-    sqlfluff = {
-      dialect = "postgres";
-      max_line_length = 80;
-    };
-  };
+  readTOML = path: builtins.fromTOML (builtins.readFile path);
+  rustSettings = toml.generate "caido-rustfmt.toml" (readTOML ./configs/rustfmt.toml);
 in
 {
   projectRootFile = null;
@@ -73,22 +60,10 @@ in
         "*.lua"
         "*.luau"
       ];
-      settings = {
-        column_width = 80;
-        line_endings = "Unix";
-        indent_type = "Spaces";
-        indent_width = 2;
-        quote_style = "AutoPreferDouble";
-        call_parentheses = "Always";
-        collapse_simple_statement = "Never";
-        sort_requires.enabled = false;
-      };
+      settings = readTOML ./configs/stylua.toml;
     };
     nixfmt.enable = true;
-    sqlfluff = {
-      enable = true;
-      dialect = "postgres";
-    };
+    sqlfluff.enable = true;
   };
 
   settings.formatter = {
@@ -96,28 +71,7 @@ in
       "--write"
       "--config"
       (toString (
-        json.generate "caido-oxfmt.json" {
-          printWidth = 80;
-          tabWidth = 2;
-          useTabs = false;
-          semi = true;
-          singleQuote = false;
-          trailingComma = "all";
-          endOfLine = "lf";
-          sortImports = {
-            groups = [
-              "builtin"
-              "external"
-              "internal"
-              "parent"
-              "sibling"
-              "index"
-            ];
-            newlinesBetween = true;
-            ignoreCase = true;
-            order = "asc";
-          };
-        }
+        json.generate "caido-oxfmt.json" (builtins.fromJSON (builtins.readFile ./configs/oxfmt.json))
       ))
       "--disable-nested-config"
       "--ignore-path"
@@ -125,12 +79,7 @@ in
     ];
     ruff-format.options = [
       "--config"
-      (toString (
-        toml.generate "caido-ruff.toml" {
-          line-length = 88;
-          target-version = "py311";
-        }
-      ))
+      (toString (toml.generate "caido-ruff.toml" (readTOML ./configs/ruff.toml)))
     ];
     rustfmt = {
       command = "${rustfmt}/bin/rustfmt";
@@ -144,7 +93,7 @@ in
       "--ignore-local-config"
       "--disregard-sqlfluffignores"
       "--config"
-      (toString sqlSettings)
+      "${./configs/sqlfluff.ini}"
     ];
   };
 }
