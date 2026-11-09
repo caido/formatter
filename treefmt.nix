@@ -7,18 +7,13 @@ let
   };
   rustSettings = toml.generate "caido-rustfmt.toml" {
     unstable_features = true;
+    edition = "2024";
     style_edition = "2024";
     group_imports = "StdExternalCrate";
     imports_granularity = "Module";
     single_line_if_else_max_width = 80;
     skip_children = true;
   };
-  # Cargo's language edition is parser metadata, not a formatting preset.
-  # Every crate uses the same rustfmt binary and the same style settings.
-  rustCommand = pkgs.writeShellScriptBin "caido-rustfmt" ''
-    exec ${pkgs.python3}/bin/python3 ${./support/rustfmt.py} \
-      ${rustfmt}/bin/rustfmt ${rustSettings} "$@"
-  '';
   sqlSettings = (pkgs.formats.ini { }).generate "caido-sqlfluff.cfg" {
     sqlfluff = {
       dialect = "postgres";
@@ -138,8 +133,12 @@ in
       ))
     ];
     rustfmt = {
-      command = rustCommand;
+      command = "${rustfmt}/bin/rustfmt";
       includes = [ "*.rs" ];
+      options = [
+        "--config-path"
+        (toString rustSettings)
+      ];
     };
     sqlfluff.options = [
       "--ignore-local-config"

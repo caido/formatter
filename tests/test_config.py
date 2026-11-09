@@ -13,7 +13,7 @@ CONFIG = tomllib.loads(Path(os.environ["CAIDO_FORMATTER_CONFIG"]).read_text())
 SAMPLES = {
     "src/example.ts": 'import z from "z";\nimport fs from "node:fs";\nexport const x={z,fs};',
     "src/example.py": 'answer={"value":1+2}',
-    "src/example.rs": 'fn main(){println!("hello");}',
+    "src/example.rs": 'async fn example(){println!("hello");}',
     "infra/example.tf": 'locals { value="test" }',
     "scripts/example.sh": '#!/bin/sh\ncase "$1" in value) echo "hello";; esac\nif true;then echo "hello";fi',
     "src/example.lua": 'local answer={"hello",2,3}',
@@ -132,36 +132,6 @@ class SharedConfigurationTests(unittest.TestCase):
         self.assert_success(run(self.root))
         for path in ignored:
             self.assertEqual(path.read_text(), "invalid code")
-
-    def test_rust_editions_are_metadata_and_share_one_style(self):
-        for name, edition in [("older", "2021"), ("newer", "2024")]:
-            write(
-                self.root,
-                f"{name}/Cargo.toml",
-                f'[package]\nname="{name}"\nversion="0.1.0"\nedition="{edition}"\n',
-            )
-            write(self.root, f"{name}/src/lib.rs", "pub fn value()->u32{42}")
-        self.assert_success(run(self.root))
-        self.assertEqual(
-            (self.root / "older/src/lib.rs").read_bytes(),
-            (self.root / "newer/src/lib.rs").read_bytes(),
-        )
-        write(self.root, "older/src/lib.rs", "pub fn gen()->u32{42}")
-        self.assert_success(run(self.root))
-
-    def test_workspace_edition_inheritance(self):
-        write(
-            self.root,
-            "Cargo.toml",
-            '[workspace]\nmembers=["member"]\n[workspace.package]\nedition="2021"\n',
-        )
-        write(
-            self.root,
-            "member/Cargo.toml",
-            '[package]\nname="member"\nversion="0.1.0"\nedition.workspace=true\n',
-        )
-        write(self.root, "member/src/lib.rs", "pub fn gen()->u32{42}")
-        self.assert_success(run(self.root))
 
     def test_rustfmt_does_not_touch_unselected_children(self):
         write(self.root, "src/lib.rs", "mod child;\npub fn value()->u32{42}")

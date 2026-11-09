@@ -49,7 +49,7 @@ All formatting policy lives in **`treefmt.nix`**:
 
 There is one set of language globs and generic dependency/generated-file exclusions. Existing per-repository formatter config files do not select alternate formatting settings. Prettier, Deno and Black are not alternative engines in this setup.
 
-Rust's Cargo edition is read automatically so 2015/2018/2021/2024 crates can use the same formatter and shared 2024 style. This is parser metadata from `Cargo.toml`, not a project-specific formatting configuration. Standalone Rust files use edition 2024. Python formatting targets Python 3.11 compatibility everywhere.
+All Rust files use edition 2024 and the shared 2024 style. Projects must update their `Cargo.toml` edition and migrate any incompatible code before adopting the shared formatter. Python formatting targets Python 3.11 compatibility everywhere.
 
 Nix generates the tool configuration files and the treefmt TOML in the Nix store. Nixpkgs and rust-overlay are pinned in `flake.lock`, so formatter binaries do not come from a project's PATH. Update the shared input's lockfile pin to roll out a new version of this configuration.
 
