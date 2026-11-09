@@ -22,4 +22,4 @@ jobs:
           use-gha-cache: true
           use-flakehub: false
       - name: Check formatting only
-        run: nix flake check --no-update-lock-file --show-trace
+        run: nix run --no-update-lock-file .#formatting-check

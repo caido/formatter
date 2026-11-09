@@ -44,28 +44,22 @@
         checks = eachSystem (system: {
           formatting = evaluated.${system}.config.build.check source;
         });
-        packages = eachSystem (system: {
-          formatting-check = evaluated.${system}.config.build.check source;
+        apps = eachSystem (system: {
+          formatting-check = {
+            type = "app";
+            program = toString (
+              (pkgsFor system).writeShellScript "formatting-check" ''
+                exec nix build --no-link --no-update-lock-file "${source}#checks.${system}.formatting" "$@"
+              ''
+            );
+          };
         });
       };
       project = forProject self;
     in
     {
       lib = { inherit forProject; };
-      inherit (project) formatter checks;
-
-      packages = eachSystem (
-        system:
-        project.packages.${system}
-        // {
-          default = wrappers.${system};
-          config = evaluated.${system}.config.build.configFile;
-        }
-      );
-
-      devShells = eachSystem (system: {
-        default = evaluated.${system}.config.build.devShell;
-      });
+      inherit (project) formatter checks apps;
       templates.default = {
         path = ./templates/default;
         description = "Identical shared formatting integration for any Caido repository";
