@@ -1,6 +1,6 @@
 # Caido formatter
 
-This repo contains the formatting rules for every language and data serialization format that we use at [caido](https://caido.io). It exposes contains a nix flake that provides utilities to make sure files are properly formatted in your projects. Every formatter we use is pinned here in the `flake.lock` and installed on the fly when the fmt command is run. It is based on [treefmt-nix](https://github.com/numtide/treefmt-nix).
+This repo contains the formatting rules for every language and data serialization format that we use at [caido](https://caido.io). It contains a nix flake that provides utilities to make sure files are properly formatted in our projects. Every formatter we use is pinned here in the `flake.lock` and installed on the fly when the fmt command runs. It is based on [treefmt-nix](https://github.com/numtide/treefmt-nix).
 
 ## Add to any project
 
