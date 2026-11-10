@@ -1,0 +1,6 @@
+[formatting]
+array_auto_collapse = true
+array_auto_expand = true
+column_width = 100
+indent_string = "  "
+inline_table_expand = false

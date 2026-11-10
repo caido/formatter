@@ -63,6 +63,10 @@ in
       settings = readTOML ./configs/stylua.toml;
     };
     nixfmt.enable = true;
+    taplo = {
+      enable = true;
+      settings = readTOML ./configs/taplo.toml;
+    };
     sqlfluff.enable = true;
   };
 
