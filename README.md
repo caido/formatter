@@ -33,6 +33,7 @@ configs/
   rustfmt.toml
   stylua.toml
   sqlfluff.ini
+  ...
 ```
 
 The language mapping is:
@@ -46,4 +47,5 @@ The language mapping is:
 | Shell                                                                 | shfmt                        |
 | Lua/Luau                                                              | StyLua                       |
 | Nix                                                                   | nixfmt                       |
+| Toml                                                                  | taplo                        |
 | SQL                                                                   | SQLFluff, PostgreSQL dialect |
