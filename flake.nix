@@ -34,31 +34,44 @@
           inherit system;
           overlays = [ rust-overlay.overlays.default ];
         };
-      evaluated = eachSystem (system: treefmt-nix.lib.evalModule (pkgsFor system) ./treefmt.nix);
-      wrappers = eachSystem (system: evaluated.${system}.config.build.wrapper);
 
-      # Only the source being checked differs between callers. Formatter
-      # selection, settings, versions and file routing are identical everywhere.
-      forProject = source: {
-        formatter = wrappers;
-        checks = eachSystem (system: {
-          formatting = evaluated.${system}.config.build.check source;
-        });
-        apps = eachSystem (system: {
-          formatting-check = {
-            type = "app";
-            program = toString (
-              (pkgsFor system).writeShellScript "formatting-check" ''
-                exec nix build --no-link --no-update-lock-file "${source}#checks.${system}.formatting" "$@"
-              ''
-            );
-          };
-        });
-      };
+      forProjectWith =
+        {
+          source,
+          extraConfig ? { },
+        }:
+        let
+          evaluated = eachSystem (
+            system:
+            treefmt-nix.lib.evalModule (pkgsFor system) {
+              imports = [
+                ./treefmt.nix
+                extraConfig
+              ];
+            }
+          );
+        in
+        {
+          formatter = eachSystem (system: evaluated.${system}.config.build.wrapper);
+          checks = eachSystem (system: {
+            formatting = evaluated.${system}.config.build.check source;
+          });
+          apps = eachSystem (system: {
+            formatting-check = {
+              type = "app";
+              program = toString (
+                (pkgsFor system).writeShellScript "formatting-check" ''
+                  exec nix build --no-link --no-update-lock-file "${source}#checks.${system}.formatting" "$@"
+                ''
+              );
+            };
+          });
+        };
+      forProject = source: forProjectWith { inherit source; };
       project = forProject self;
     in
     {
-      lib = { inherit forProject; };
+      lib = { inherit forProject forProjectWith; };
       inherit (project) formatter checks apps;
       templates.default = {
         path = ./templates/default;
