@@ -30,13 +30,15 @@ Use `forProjectWith` to add a [treefmt-nix](https://github.com/numtide/treefmt-n
 outputs = { self, caido-formatter, ... }:
   caido-formatter.lib.forProjectWith {
     source = self;
-    extraConfig = {
-      settings.excludes = [ "migrations/20261028180000_settings_snapshots.up.sql" ];
-    };
+    modules = [
+      {
+        settings.excludes = [ "migrations/20261028180000_settings_snapshots.up.sql" ];
+      }
+    ];
   };
 ```
 
-`extraConfig` can be an attribute set, a module function, or a path to a module (for example, `./treefmt.nix`). It uses the normal Nix module merge rules, so `settings.excludes` adds project-relative patterns without replacing shared exclusions. Both `nix fmt` and `nix run .#formatting-check` use the merged configuration. Projects that don't need extra configuration can keep using `forProject self`.
+`modules` defaults to `[]`. Each entry can be an attribute set, a module function, or a path to a module (for example, `./treefmt.nix`). The normal Nix module merge rules apply, so `settings.excludes` adds project-relative patterns without replacing shared exclusions. Both `nix fmt` and `nix run .#formatting-check` use the merged configuration. Projects that don't need extra configuration can keep using `forProject self`.
 
 ## Configs
 

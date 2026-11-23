@@ -38,16 +38,13 @@
       forProjectWith =
         {
           source,
-          extraConfig ? { },
+          modules ? [ ],
         }:
         let
           evaluated = eachSystem (
             system:
             treefmt-nix.lib.evalModule (pkgsFor system) {
-              imports = [
-                ./treefmt.nix
-                extraConfig
-              ];
+              imports = [ ./treefmt.nix ] ++ modules;
             }
           );
         in
