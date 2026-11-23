@@ -22,6 +22,24 @@ nix fmt
 nix run .#formatting-check
 ```
 
+### Add project-specific configuration
+
+Use `forProjectWith` to add a [treefmt-nix](https://github.com/numtide/treefmt-nix) module to the shared configuration:
+
+```nix
+outputs = { self, caido-formatter, ... }:
+  caido-formatter.lib.forProjectWith {
+    source = self;
+    modules = [
+      {
+        settings.excludes = [ "migrations/20261028180000_settings_snapshots.up.sql" ];
+      }
+    ];
+  };
+```
+
+`modules` defaults to `[]`. Each entry can be an attribute set, a module function, or a path to a module (for example, `./treefmt.nix`). The normal Nix module merge rules apply, so `settings.excludes` adds project-relative patterns without replacing shared exclusions. Both `nix fmt` and `nix run .#formatting-check` use the merged configuration. Projects that don't need extra configuration can keep using `forProject self`.
+
 ## Configs
 
 `treefmt.nix` selects formatters and files patterns. For formatter that supports it, the config is expressed in their standard config file in `config/`.
